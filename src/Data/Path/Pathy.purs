@@ -77,6 +77,7 @@ import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String as S
 import Data.Tuple (Tuple(..), fst, snd)
+import Data.Generic (class Generic)
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -101,12 +102,16 @@ foreign import data Sandboxed :: Type
 -- | A newtype around a file name.
 newtype FileName = FileName String
 
+derive instance genericFileName :: Generic FileName
+
 -- | Unwraps the `FileName` newtype.
 runFileName :: FileName -> String
 runFileName (FileName name) = name
 
 -- | A newtype around a directory name.
 newtype DirName = DirName String
+
+derive instance genericDirName :: Generic DirName
 
 -- | Unwraps the `DirName` newtype.
 runDirName :: DirName -> String
@@ -136,6 +141,8 @@ data Path a b s
   | ParentIn (Path a b s)
   | DirIn (Path a b s) DirName
   | FileIn (Path a b s) FileName
+
+derive instance genericPath :: Generic (Path a b s)
 
 -- | A type describing a file whose location is given relative to some other,
 -- | unspecified directory (referred to as the "current directory").
