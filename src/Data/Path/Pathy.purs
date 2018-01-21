@@ -65,6 +65,7 @@ module Data.Path.Pathy
   , unsandbox
   , unsafePrintPath
   , unsafePrintPath'
+  , pathParser
   )
   where
 
@@ -73,11 +74,16 @@ import Prelude
 import Data.Array ((!!), filter, length, zipWith, range)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), either)
-import Data.Foldable (foldl)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Foldable (foldl, fold, intercalate)
+import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.String as S
+import Data.String.Yarn (fromChars) as S
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Generic (class Generic)
+import Control.Alternative ((<|>))
+import Text.Parsing.StringParser (Parser)
+import Text.Parsing.StringParser.String (string, char, alphaNum, oneOf, eof)
+import Text.Parsing.StringParser.Combinators (many1, lookAhead, optional, sepBy)
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -104,6 +110,7 @@ newtype FileName = FileName String
 
 derive instance genericFileName :: Generic FileName
 
+
 -- | Unwraps the `FileName` newtype.
 runFileName :: FileName -> String
 runFileName (FileName name) = name
@@ -112,6 +119,7 @@ runFileName (FileName name) = name
 newtype DirName = DirName String
 
 derive instance genericDirName :: Generic DirName
+
 
 -- | Unwraps the `DirName` newtype.
 runDirName :: DirName -> String
@@ -143,6 +151,23 @@ data Path a b s
   | FileIn (Path a b s) FileName
 
 derive instance genericPath :: Generic (Path a b s)
+
+
+pathParser :: forall z
+            . (RelDir Unsandboxed -> z) -> (AbsDir Unsandboxed -> z) -> (RelFile Unsandboxed -> z) -> (AbsFile Unsandboxed -> z) -> Parser z
+pathParser rd ad rf af = do
+  xs <- slew
+  pure $ parsePath rd ad rf af xs
+  where
+    slew =
+      let homogeneous = S.fromChars <$> many1 (alphaNum <|> oneOf options)
+            where
+              options = ['.','_','-','[',']','{','}','%','$','#','@','!','(',')','^','&','\'','"',':',';',',','<','>','?','+','=','`','~','/']
+          escapeSpace = string "\\ "
+      in  fold <$> many1 (homogeneous <|> escapeSpace)
+
+
+
 
 -- | A type describing a file whose location is given relative to some other,
 -- | unspecified directory (referred to as the "current directory").
