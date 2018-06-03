@@ -75,15 +75,21 @@ import Data.Array ((!!), filter, length, zipWith, range)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), either)
 import Data.Foldable (foldl, fold, intercalate)
+import Data.Enum (enumFromTo)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.String as S
 import Data.String.Yarn (fromChars) as S
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Generic (class Generic)
+import Data.NonEmpty (NonEmpty (..))
 import Control.Alternative ((<|>))
+import Control.Monad.Rec.Class (Step (..), tailRecM)
 import Text.Parsing.StringParser (Parser)
 import Text.Parsing.StringParser.String (string, char, alphaNum, oneOf, eof)
 import Text.Parsing.StringParser.Combinators (many1, lookAhead, optional, sepBy)
+import Test.QuickCheck (class Arbitrary, arbitrary)
+import Test.QuickCheck.Gen (elements, arrayOf, Gen)
+import Test.QuickCheck.Gen as QC
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -110,6 +116,11 @@ newtype FileName = FileName String
 
 derive instance genericFileName :: Generic FileName
 
+instance arbitraryFileName :: Arbitrary FileName where
+  arbitrary = do
+    ns <- arrayOf $ elements $ NonEmpty ('a') (enumFromTo 'b' 'z')
+    pure $ FileName $ S.fromChars ns
+
 
 -- | Unwraps the `FileName` newtype.
 runFileName :: FileName -> String
@@ -119,6 +130,11 @@ runFileName (FileName name) = name
 newtype DirName = DirName String
 
 derive instance genericDirName :: Generic DirName
+
+instance arbitraryDirName :: Arbitrary DirName where
+  arbitrary = do
+    ns <- arrayOf $ elements $ NonEmpty ('a') (enumFromTo 'b' 'z')
+    pure $ DirName $ S.fromChars ns
 
 
 -- | Unwraps the `DirName` newtype.
@@ -151,6 +167,29 @@ data Path a b s
   | FileIn (Path a b s) FileName
 
 derive instance genericPath :: Generic (Path a b s)
+
+instance arbitraryPath :: Arbitrary (Path a b s) where
+  arbitrary = tailRecM go Root
+    where
+      go :: Path a b s -> Gen (Step (Path a b s) (Path a b s))
+      go p = QC.oneOf $ NonEmpty
+        (pure $ Done p)
+        [ map Loop $ QC.oneOf $ NonEmpty
+          (pure Current)
+          [ pure Root
+          , pure (ParentIn p)
+          , DirIn p <$> arbitrary
+          , FileIn p <$> arbitrary
+          ]
+        ]
+
+    -- QC.oneOf $ NonEmpty
+    -- (pure Current)
+    -- [ pure Root
+    -- , ParentIn <$> arbitrary
+    -- , DirIn <$> arbitrary <*> arbitrary
+    -- , FileIn <$> arbitrary <*> arbitrary
+    -- ]
 
 
 pathParser :: forall z
