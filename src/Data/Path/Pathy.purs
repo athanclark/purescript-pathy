@@ -242,20 +242,20 @@ derive instance genericPath :: Generic (Path a b s)
 --       getDirName (DirName x) = x
 
 
-instance arbitraryPath :: Arbitrary (Path a b s) where
-  arbitrary = tailRecM go Root
-    where
-      go :: Path a b s -> Gen (Step (Path a b s) (Path a b s))
-      go p = QC.oneOf $ NonEmpty
-        (pure $ Done p)
-        [ map Loop $ QC.oneOf $ NonEmpty
-          (pure Current)
-          [ pure Root
-          , pure (ParentIn p)
-          , DirIn p <$> arbitrary
-          , FileIn p <$> arbitrary
-          ]
-        ]
+-- instance arbitraryPath :: Arbitrary (Path a b s) where
+--   arbitrary = tailRecM go Root
+--     where
+--       go :: Path a b s -> Gen (Step (Path a b s) (Path a b s))
+--       go p = QC.oneOf $ NonEmpty
+--         (pure $ Done p)
+--         [ map Loop $ QC.oneOf $ NonEmpty
+--           (pure Current)
+--           [ pure Root
+--           , pure (ParentIn p)
+--           , DirIn p <$> arbitrary
+--           , FileIn p <$> arbitrary
+--           ]
+--         ]
 
     -- QC.oneOf $ NonEmpty
     -- (pure Current)
