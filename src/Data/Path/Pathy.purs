@@ -92,6 +92,7 @@ import Test.QuickCheck.Gen (elements, arrayOf, Gen)
 import Test.QuickCheck.Gen as QC
 
 import Unsafe.Coerce (unsafeCoerce)
+import Partial.Unsafe (unsafePartial)
 
 -- | The (phantom) type of relative paths.
 foreign import data Rel :: Type
@@ -168,20 +169,93 @@ data Path a b s
 
 derive instance genericPath :: Generic (Path a b s)
 
-instance arbitraryPath :: Arbitrary (Path a b s) where
-  arbitrary = tailRecM go Root
+instance arbitraryPathAbsDirUnsandboxed :: Arbitrary (Path Abs Dir Unsandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = "/" <> intercalate "/" (map getDirName $ [x] <> xs) <> "/"
+    unsafePartial $ case parseAbsDir s of
+      Just x -> pure x
     where
-      go :: Path a b s -> Gen (Step (Path a b s) (Path a b s))
-      go p = QC.oneOf $ NonEmpty
-        (pure $ Done p)
-        [ map Loop $ QC.oneOf $ NonEmpty
-          (pure Current)
-          [ pure Root
-          , pure (ParentIn p)
-          , DirIn p <$> arbitrary
-          , FileIn p <$> arbitrary
-          ]
-        ]
+      getDirName (DirName x) = x
+
+instance arbitraryPathAbsFileUnsandboxed :: Arbitrary (Path Abs File Unsandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = "/" <> intercalate "/" (map getDirName $ [x] <> xs)
+    unsafePartial $ case parseAbsFile s of
+      Just x -> pure x
+    where
+      getDirName (DirName x) = x
+
+instance arbitraryPathRelDirUnsandboxed :: Arbitrary (Path Rel Dir Unsandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = intercalate "/" (map getDirName $ [x] <> xs) <> "/"
+    unsafePartial $ case parseRelDir s of
+      Just x -> pure x
+    where
+      getDirName (DirName x) = x
+
+instance arbitraryPathRelFileUnsandboxed :: Arbitrary (Path Rel File Unsandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = intercalate "/" (map getDirName $ [x] <> xs)
+    unsafePartial $ case parseRelFile s of
+      Just x -> pure x
+    where
+      getDirName (DirName x) = x
+
+instance arbitraryPathAbsDirSandboxed :: Arbitrary (Path Abs Dir Sandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = "/" <> intercalate "/" (map getDirName $ [x] <> xs) <> "/"
+    unsafePartial $ case parseAbsDir s of
+      Just x -> pure $ unsafeCoerce x
+    where
+      getDirName (DirName x) = x
+
+instance arbitraryPathAbsFileSandboxed :: Arbitrary (Path Abs File Sandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = "/" <> intercalate "/" (map getDirName $ [x] <> xs)
+    unsafePartial $ case parseAbsFile s of
+      Just x -> pure $ unsafeCoerce x
+    where
+      getDirName (DirName x) = x
+
+instance arbitraryPathRelDirSandboxed :: Arbitrary (Path Rel Dir Sandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = intercalate "/" (map getDirName $ [x] <> xs) <> "/"
+    unsafePartial $ case parseRelDir s of
+      Just x -> pure $ unsafeCoerce x
+    where
+      getDirName (DirName x) = x
+
+instance arbitraryPathRelFileSandboxed :: Arbitrary (Path Rel File Sandboxed) where
+  arbitrary = do
+    NonEmpty x (xs :: Array DirName) <- QC.arrayOf1 arbitrary
+    let s = intercalate "/" (map getDirName $ [x] <> xs)
+    unsafePartial $ case parseRelFile s of
+      Just x -> pure $ unsafeCoerce x
+    where
+      getDirName (DirName x) = x
+
+
+-- instance arbitraryPath :: Arbitrary (Path a b s) where
+--   arbitrary = tailRecM go Root
+--     where
+--       go :: Path a b s -> Gen (Step (Path a b s) (Path a b s))
+--       go p = QC.oneOf $ NonEmpty
+--         (pure $ Done p)
+--         [ map Loop $ QC.oneOf $ NonEmpty
+--           (pure Current)
+--           [ pure Root
+--           , pure (ParentIn p)
+--           , DirIn p <$> arbitrary
+--           , FileIn p <$> arbitrary
+--           ]
+--         ]
 
     -- QC.oneOf $ NonEmpty
     -- (pure Current)
