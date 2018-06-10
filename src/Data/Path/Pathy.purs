@@ -88,7 +88,7 @@ import Text.Parsing.StringParser (Parser)
 import Text.Parsing.StringParser.String (string, char, alphaNum, oneOf, eof)
 import Text.Parsing.StringParser.Combinators (many1, lookAhead, optional, sepBy)
 import Test.QuickCheck (class Arbitrary, arbitrary)
-import Test.QuickCheck.Gen (elements, arrayOf, Gen)
+import Test.QuickCheck.Gen (elements, arrayOf1, Gen)
 import Test.QuickCheck.Gen as QC
 
 import Unsafe.Coerce (unsafeCoerce)
@@ -119,7 +119,7 @@ derive instance genericFileName :: Generic FileName
 
 instance arbitraryFileName :: Arbitrary FileName where
   arbitrary = do
-    ns <- arrayOf $ elements $ NonEmpty ('a') (enumFromTo 'b' 'z')
+    ns <- arrayOf1 $ elements $ NonEmpty ('a') (enumFromTo 'b' 'z')
     pure $ FileName $ S.fromChars ns
 
 
@@ -134,7 +134,7 @@ derive instance genericDirName :: Generic DirName
 
 instance arbitraryDirName :: Arbitrary DirName where
   arbitrary = do
-    ns <- arrayOf $ elements $ NonEmpty ('a') (enumFromTo 'b' 'z')
+    ns <- arrayOf1 $ elements $ NonEmpty ('a') (enumFromTo 'b' 'z')
     pure $ DirName $ S.fromChars ns
 
 
